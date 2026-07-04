@@ -133,6 +133,11 @@ summary {
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+
+  // Text-file attachment preview: keep formatting exactly, no soft wrapping.
+  &.is-preformatted {
+    white-space: pre;
+  }
 }
 
 // --- Attachment list in the detail view ---

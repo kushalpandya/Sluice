@@ -23,7 +23,7 @@ function Body({ viewer }) {
         />
       );
     case 'text':
-      return <pre class="desc-box" style="height:60vh">{viewer.text}</pre>;
+      return <pre class="desc-box is-preformatted" style="height:60vh">{viewer.text}</pre>;
     default:
       return <p>Cannot preview this attachment. Use Download.</p>;
   }
