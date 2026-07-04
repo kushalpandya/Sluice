@@ -1,0 +1,18 @@
+node_modules/
+.wrangler/
+dist/
+
+# `wrangler r2 object get` writes downloaded objects here by default
+# (under worker/, since Worker commands run from there).
+reports/
+
+# Local secrets for `wrangler dev` — NEVER commit. Use the .example template.
+.env
+
+# Per-instance config — gitignored so the repo stays a clean template. Copy the
+# committed .example files and fill in your own values.
+/worker/wrangler.jsonc
+/web/src/config.js
+
+*.log
+.DS_Store

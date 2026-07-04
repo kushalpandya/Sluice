@@ -1,0 +1,257 @@
+// Bulma, imported from source so we can theme it. `$primary` is the brand seed —
+// Bulma derives the whole primary scale (buttons, active theme-switch, the
+// Promote button, focus rings) from this one colour. Change it to rebrand.
+@use "bulma/sass" with (
+  $primary: #5d9ada
+);
+
+// Small custom layer on top of Bulma.
+
+$mobile-max: 768px;
+$muted: hsl(0deg 0% 50%);
+$z-theme-switch: 20;
+$z-toast: 1000;
+
+// --- Base ---
+tbody tr {
+  cursor: pointer;
+}
+summary {
+  cursor: pointer;
+}
+
+// --- Theme switch ---
+// Pinned to the page's top-right corner, above page content but below modals
+// (Bulma modal z-index is 40) and toasts. Sits in the whitespace above the
+// toolbar (which starts below the section's top padding).
+.theme-switch.buttons {
+  position: fixed;
+  top: 0.6rem;
+  right: 0.9rem;
+  z-index: $z-theme-switch;
+  margin-bottom: 0;
+
+  .button {
+    margin-bottom: 0;
+  }
+}
+
+// --- Toolbar ---
+// Wraps instead of cramming on narrow screens.
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+
+  // Override Bulma's `.title:not(:last-child)` bottom margin (0,2,0 specificity),
+  // which would otherwise make the title box taller and push its text off-centre
+  // from the action buttons.
+  .toolbar-title {
+    margin: 0;
+  }
+
+  // Keep every direct child centred on the cross axis.
+  > * {
+    margin-bottom: 0;
+    align-self: center;
+  }
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  > * {
+    margin-bottom: 0;
+    align-self: center;
+  }
+}
+
+// --- Detail modal footer: left action group + right action group ---
+.dlg-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+
+  .spacer {
+    flex: 1;
+  }
+}
+
+// --- Read-only key/value grid in the detail view ---
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  margin-bottom: 1rem;
+
+  dt {
+    font-size: 0.75rem;
+    font-weight: 600;
+    align-self: center;
+  }
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+// --- Split button: join the primary button and the caret trigger ---
+.split-btn {
+  display: inline-flex;
+
+  .split-primary {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .split-caret {
+    border-left-color: transparent;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+}
+
+// Space between icon and label in dropdown menu items (Bulma only auto-spaces buttons).
+.dropdown-item .icon:first-child {
+  margin-right: 0.4rem;
+}
+
+// Let the split-button dropdown (opens upward) show above the modal footer instead of clipping.
+.modal-card-foot {
+  overflow: visible;
+}
+
+// Fixed-height scrollable description.
+.desc-box {
+  height: 9rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// --- Attachment list in the detail view ---
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.attachment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .attachment-name {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .attachment-meta {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .attachment-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+  }
+}
+
+// --- Toast (Bulma notification, pinned bottom-centre) ---
+.toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: $z-toast;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  max-width: calc(100vw - 2rem);
+
+  &.show {
+    opacity: 1;
+  }
+}
+
+// --- Responsive: below Bulma's tablet breakpoint, turn the reports table into
+// stacked cards using each cell's data-label. ---
+@media screen and (max-width: $mobile-max) {
+  .reports-table {
+    thead {
+      display: none;
+    }
+
+    &,
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    tr {
+      border: 1px solid hsl(0deg 0% 50% / 0.25);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      padding: 0.25rem 0.9rem;
+    }
+
+    // Bulma's striping sets a background per <td>; drop it in card mode.
+    &.is-striped tbody tr:not(.is-selected):nth-child(even) {
+      background: none;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      border: none !important;
+      padding: 0.4rem 0;
+      text-align: right;
+
+      &::before {
+        content: attr(data-label);
+        font-weight: 600;
+        text-align: left;
+        flex: 0 0 auto;
+        color: $muted;
+      }
+
+      // Hide empty cells (e.g. the Log column when there's no log).
+      &:empty {
+        display: none;
+      }
+    }
+  }
+
+  // Give modals a touch more room on small screens.
+  .modal-card {
+    width: calc(100vw - 1.5rem);
+    margin: 0 0.75rem;
+  }
+
+  // Stack the detail-modal footer's action groups vertically.
+  .dlg-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    .spacer {
+      display: none;
+    }
+    .split-btn {
+      display: flex;
+    }
+    .split-btn .split-primary {
+      flex: 1;
+    }
+  }
+}

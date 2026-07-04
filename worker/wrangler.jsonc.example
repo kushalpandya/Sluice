@@ -1,0 +1,90 @@
+{
+	// Wrangler config for the Sluice triage Worker.
+	// Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+	"$schema": "../node_modules/wrangler/config-schema.json",
+	"name": "sluice",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-01-01",
+	"observability": {
+		"enabled": true
+	},
+	// Local `wrangler dev` bind address.
+	"dev": {
+		"ip": "127.0.0.1",
+		"port": 8787
+	},
+	// To serve the API from your own domain, add a custom domain to this Worker
+	// (dashboard: Worker > Settings > Domains & Routes) or uncomment + edit:
+	// "routes": [{ "pattern": "api.example.com", "custom_domain": true }],
+
+	// Non-secret configuration. Secrets (APP_KEY, ADMIN_KEY, GITHUB_TOKEN) are set
+	// with `wrangler secret put` and never live in this file.
+	"vars": {
+		// Shown in the liveness banner + used as the GitHub API User-Agent.
+		"PRODUCT_NAME": "Sluice",
+		// Promotion targets this repo (only reached via your manual promote action,
+		// never at ingest). Set these to your own owner/repo.
+		"GITHUB_OWNER": "your-github-username",
+		"GITHUB_REPO": "your-repo",
+		"DAILY_CAP": "200",
+		"INSTALL_DAILY_CAP": "5",
+		"MAX_ATTACHMENT_BYTES": "10485760",
+		"MAX_ATTACHMENTS": "10",
+		"MAX_TOTAL_BYTES": "26214400",
+		// CORS allowlist for the /admin API: "*" or a comma-separated list of
+		// origins (the Worker echoes whichever listed origin a request came from).
+		// "*" is fine — the real gate is the bearer ADMIN_KEY (not readable
+		// cross-origin) plus Cloudflare Access on the UI. To lock it down, list your
+		// UI origin + your dev origin, e.g.:
+		//   "https://reports.example.com,http://127.0.0.1:8123"
+		"ADMIN_ALLOWED_ORIGIN": "*"
+	},
+	// R2 bucket for stored attachment blobs. Create it once:
+	//   wrangler r2 bucket create sluice-reports
+	"r2_buckets": [
+		{
+			"binding": "REPORTS_BUCKET",
+			"bucket_name": "sluice-reports"
+		}
+	],
+	// D1 database for report + attachment records. Create it once and paste the
+	// returned database_id below, then apply schema.sql:
+	//   wrangler d1 create sluice-reports
+	//   wrangler d1 execute sluice-reports --remote --file schema.sql
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "sluice-reports",
+			"database_id": "<your-d1-database-id>"
+		}
+	],
+	// Native Rate Limiting API bindings. `namespace_id` is any unique integer you
+	// pick per limiter; `period` must be 10 or 60 (seconds). Burst protection;
+	// longer-window budgets are the D1 daily COUNT caps.
+	"ratelimits": [
+		{
+			"name": "IP_LIMITER",
+			"namespace_id": "1001",
+			"simple": {
+				"limit": 8,
+				"period": 60
+			}
+		},
+		{
+			"name": "INSTALL_LIMITER",
+			"namespace_id": "1002",
+			"simple": {
+				"limit": 3,
+				"period": 60
+			}
+		},
+		{
+			"name": "ADMIN_LIMITER",
+			"namespace_id": "1003",
+			"simple": {
+				"limit": 60,
+				"period": 60
+			}
+		}
+	]
+}
