@@ -1,5 +1,5 @@
 import { COLUMNS } from '../lib/constants.js';
-import { when } from '../lib/utils.js';
+import { whenDate } from '../lib/utils.js';
 import { icon } from '../lib/format.jsx';
 import { Tag } from './Tag.jsx';
 import { StatusIndicator } from './StatusIndicator.jsx';
@@ -35,7 +35,7 @@ export function ReportsTable({ rows, sort, toggleSort, openDetail, count }) {
                 class={r.status === 'spam' || r.status === 'archived' ? 'is-dimmed' : ''}
               >
                 <td data-label="Received" class="has-text-grey">
-                  {when(r.created)}
+                  {whenDate(r.created)}
                 </td>
                 <td data-label="Type">
                   <Tag v={r.category} rounded />
