@@ -28,11 +28,7 @@ All the data stays in your own Cloudflare account. Any client that can send a
 multipart POST can use it (native app, Electron, web, a shell script). Runs on
 Cloudflare's free plan.
 
-## Screenshots
-
-| Homepage                                 | Report Detail                                    | Mobile View                                    |
-| ---------------------------------------- | ------------------------------------------------ | ---------------------------------------------- |
-| ![Homepage](.github/assets/homepage.png) | ![Report Detail](.github/assets/report_view.png) | ![Mobile View](.github/assets/mobile_view.png) |
+### [Demo Page](https://kushalpandya.github.io/Sluice)
 
 ## Layout
 
