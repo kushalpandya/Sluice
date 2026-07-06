@@ -4,8 +4,11 @@
   <img src="web/public/favicon.svg" alt="Sluice logo" width="96" height="96" />
 </p>
 
-A self-hosted place to collect problem reports from your app and turn the good
-ones into GitHub issues.
+> _A sluice is an artificial channel or trough used to control, direct, or carry off water._
+> _It is typically fitted with a gate to regulate the flow._
+
+A Cloudfare Workers-backed system to problem reports from your app submitted by users,
+allowing you, the maintainer of the app to triage the reports into GitHub issues.
 
 Reports are stored, not auto-filed. When your app POSTs a report, the Worker
 saves it to D1 (and any attachments to R2) and stops. You review reports in the

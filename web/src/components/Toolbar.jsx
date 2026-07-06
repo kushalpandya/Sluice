@@ -6,7 +6,10 @@ export function Toolbar({ filter, changeFilter, busy, onRefresh, onPrune, onSign
     <section class="section pb-0">
       <div class="container">
         <div class="toolbar">
-          <span class="title is-5 toolbar-title">{PRODUCT_NAME}</span>
+          <span class="toolbar-title">
+            <span class="product-logo" aria-hidden="true"></span>
+            <span class="title is-5">{PRODUCT_NAME}</span>
+          </span>
           <div class="toolbar-actions">
             <div class="select">
               <select value={filter} onChange={(e) => changeFilter(e.target.value)}>

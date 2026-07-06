@@ -49,7 +49,23 @@ summary {
   // which would otherwise make the title box taller and push its text off-centre
   // from the action buttons.
   .toolbar-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin: 0;
+
+    .title {
+      margin: 0;
+    }
+  }
+
+  .product-logo {
+    width: 2rem;
+    height: 2rem;
+    background-image: url("/favicon.svg");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
   }
 
   // Keep every direct child centred on the cross axis.
@@ -68,6 +84,33 @@ summary {
   > * {
     margin-bottom: 0;
     align-self: center;
+  }
+}
+
+// --- Status indicator (ring + label, used in the Status column) ---
+// Colours are pulled from Bulma's own HSL custom properties so they stay in
+// sync with whatever the `.tag.is-*` modifiers resolve to (incl. dark mode).
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background-color: hsl(var(--bulma-scheme-h), var(--bulma-scheme-s), var(--bulma-text-l));
+
+  @each $name in ('link', 'danger', 'info', 'success', 'warning', 'dark') {
+    &.is-#{$name} {
+      background-color: hsl(
+        var(--bulma-#{$name}-h),
+        var(--bulma-#{$name}-s),
+        var(--bulma-#{$name}-l)
+      );
+    }
   }
 }
 
@@ -184,6 +227,11 @@ summary {
   &.show {
     opacity: 1;
   }
+}
+
+// De-emphasise rows that are no longer actionable.
+.reports-table tr.is-dimmed {
+  opacity: 0.5;
 }
 
 // --- Responsive: below Bulma's tablet breakpoint, turn the reports table into

@@ -10,7 +10,7 @@ export const WINDOW_LABELS = {
 // Solid colours (theme-adaptive contrast); '' = plain tag that follows the scheme.
 // Avoid Bulma's `is-light`, which is a fixed pale colour that ignores dark mode.
 export const TAG_COLOR = {
-  bug: "is-link",
+  bug: "is-warning",
   crash: "is-danger",
   feature: "is-success",
   other: "",

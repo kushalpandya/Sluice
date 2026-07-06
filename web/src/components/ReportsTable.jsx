@@ -2,6 +2,7 @@ import { COLUMNS } from '../lib/constants.js';
 import { when } from '../lib/utils.js';
 import { icon } from '../lib/format.jsx';
 import { Tag } from './Tag.jsx';
+import { StatusIndicator } from './StatusIndicator.jsx';
 
 // On desktop this is a sortable table; below the mobile breakpoint `styles.css`
 // restyles each row into a stacked card using the `data-label` attributes.
@@ -28,12 +29,16 @@ export function ReportsTable({ rows, sort, toggleSort, openDetail, count }) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} onClick={() => openDetail(r.id)}>
+              <tr
+                key={r.id}
+                onClick={() => openDetail(r.id)}
+                class={r.status === 'spam' || r.status === 'archived' ? 'is-dimmed' : ''}
+              >
                 <td data-label="Received" class="has-text-grey">
                   {when(r.created)}
                 </td>
                 <td data-label="Type">
-                  <Tag v={r.category} />
+                  <Tag v={r.category} rounded />
                 </td>
                 <td data-label="Summary">{r.summary}</td>
                 <td data-label="From" class="has-text-grey">{r.email}</td>
@@ -46,7 +51,7 @@ export function ReportsTable({ rows, sort, toggleSort, openDetail, count }) {
                   ) : null}
                 </td>
                 <td data-label="Status">
-                  <Tag v={r.status} />
+                  <StatusIndicator v={r.status} />
                   {r.github_url ? (
                     <>
                       {' '}
