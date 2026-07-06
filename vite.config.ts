@@ -3,8 +3,12 @@ import preact from '@preact/preset-vite';
 
 // Frontend source lives in web/; the build output goes to dist/ at the repo root,
 // which `npm run deploy:web` hands to `wrangler pages deploy`.
+//
+// The demo build (`npm run build:demo`) is instead deployed to GitHub Pages as
+// a project site, which serves from /<repo-name>/.
 export default defineConfig({
   root: 'web',
+  base: process.env.VITE_DEMO === 'true' ? '/Sluice/' : '/',
   plugins: [preact()],
   css: {
     preprocessorOptions: {

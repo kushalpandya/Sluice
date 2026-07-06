@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'preact/hooks';
 import { normalizeStatus } from '../lib/utils.js';
 import { createApiClient, jsonBody } from '../lib/api.js';
+import { createDemoApiClient } from '../demo/demoApi.js';
 import { triggerDownload } from '../lib/download.js';
 import { buildAttachmentView } from '../lib/attachmentView.js';
 import { useTheme } from './useTheme.js';
 import { useToast } from './useToast.js';
+import { DEMO_MODE } from '../config.js';
 
 // Orchestrates the triage session: auth/config, the reports list, the open
 // report + its per-report actions (status, delete, attachments, promote), and
@@ -29,7 +31,7 @@ export function useTriage() {
   const { themeMode, setThemeMode } = useTheme();
   const { toastMsg, toast } = useToast();
 
-  const authed = !!(cfg.base && cfg.key);
+  const authed = DEMO_MODE || !!(cfg.base && cfg.key);
 
   const syncUrl = (status, id) => {
     const p = new URLSearchParams();
@@ -40,13 +42,17 @@ export function useTriage() {
   };
 
   const signOut = (msg) => {
+    if (DEMO_MODE) {
+      location.reload(); // demo state lives in memory only — reload resets it
+      return;
+    }
     localStorage.removeItem('sluiceKey');
     setCfg((c) => ({ base: c.base, key: '' }));
     setDetail(null);
     if (typeof msg === 'string' && msg) toast(msg);
   };
 
-  const { api, apiJson } = createApiClient(cfg, signOut);
+  const { api, apiJson } = DEMO_MODE ? createDemoApiClient() : createApiClient(cfg, signOut);
 
   // apiJson + ok-check + failure toast, for mutating admin calls.
   const send = async (path, opts, onOk) => {

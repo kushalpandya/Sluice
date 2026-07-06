@@ -1,5 +1,7 @@
 import { useTriage } from './hooks/useTriage.js';
+import { DEMO_MODE } from './config.js';
 import { Connect } from './components/Connect.jsx';
+import { DemoBanner } from './components/DemoBanner.jsx';
 import { Toolbar } from './components/Toolbar.jsx';
 import { ReportsTable } from './components/ReportsTable.jsx';
 import { ReportDetail } from './components/ReportDetail.jsx';
@@ -32,6 +34,7 @@ export function App() {
   return (
     <div>
       {themeSwitch}
+      {DEMO_MODE && <DemoBanner />}
       <Toolbar
         filter={t.filter}
         changeFilter={t.changeFilter}

@@ -1,5 +1,5 @@
 import { icon } from '../lib/format.jsx';
-import { PRODUCT_NAME } from '../config.js';
+import { PRODUCT_NAME, DEMO_MODE } from '../config.js';
 
 export function Toolbar({ filter, changeFilter, busy, onRefresh, onPrune, onSignOut }) {
   return (
@@ -38,11 +38,11 @@ export function Toolbar({ filter, changeFilter, busy, onRefresh, onPrune, onSign
             </button>
             <button
               class="button"
-              title="Sign out"
-              aria-label="Sign out"
+              title={DEMO_MODE ? 'Reset demo data' : 'Sign out'}
+              aria-label={DEMO_MODE ? 'Reset demo data' : 'Sign out'}
               onClick={onSignOut}
             >
-              {icon('right-from-bracket')}
+              {icon(DEMO_MODE ? 'arrow-rotate-left' : 'right-from-bracket')}
             </button>
           </div>
         </div>

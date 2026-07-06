@@ -9,6 +9,7 @@
     "dev": "vite",
     "dev:api": "cd worker && wrangler dev",
     "build": "vite build",
+    "build:demo": "VITE_DEMO=true vite build",
     "deploy:web": "vite build && wrangler pages deploy dist --project-name sluice-ui --branch production",
     "deploy:api": "cd worker && wrangler deploy",
     "tail": "cd worker && wrangler tail",
