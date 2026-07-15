@@ -47,6 +47,19 @@ summary {
   color: hsl(var(--bulma-warning-h), var(--bulma-warning-s), var(--bulma-warning-invert-l));
   font-size: 0.85rem;
   text-align: center;
+
+  .demo-banner-repo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+
+    span:not(.icon) {
+      text-decoration: underline;
+    }
+  }
 }
 
 // --- Toolbar ---

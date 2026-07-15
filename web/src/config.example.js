@@ -12,4 +12,7 @@ export const PRODUCT_NAME = DEMO_MODE ? 'Sluice' : '<Your Product Name>';
 export const DEFAULT_BASE = '';
 
 export const DEMO_BANNER =
-  "Demo mode - data is fake and local to your browser. Nothing is saved; reload to reset.";
+  "Sluice demo. Reload the page to reset changes.";
+
+// Source repository, linked from the demo banner so visitors can find the project.
+export const REPO_URL = "https://github.com/kushalpandya/Sluice";
