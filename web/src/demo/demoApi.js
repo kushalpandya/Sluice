@@ -5,7 +5,12 @@ import { ALLOWED_STATUSES, SETTABLE_STATUSES, PRUNE_WINDOWS_MS } from './constan
 // so the UI can't tell the difference. State lives only in this module — a
 // full page reload re-imports it fresh, so all edits are discarded.
 let nextIssueNumber = 501;
-let store = makeDemoReports();
+let store = null;
+
+// The seed data is built on first use, not at import time: with no module-level
+// side effect, a real (non-demo) build tree-shakes this whole module and its
+// fixtures out instead of shipping them dead.
+const db = () => (store ||= makeDemoReports());
 
 function json(status, body) {
   return new Response(JSON.stringify(body), {
@@ -33,7 +38,7 @@ function resolvePruneWindow(window) {
 function listReports(params) {
   const status = params.get('status');
   const limit = Math.min(Math.max(parseInt(params.get('limit'), 10) || 100, 1), 200);
-  const rows = store
+  const rows = db()
     .filter((r) => !status || !ALLOWED_STATUSES.has(status) || r.status === status)
     .sort((a, b) => b.created - a.created)
     .slice(0, limit)
@@ -52,7 +57,7 @@ function listReports(params) {
 }
 
 function getReport(id) {
-  const r = store.find((x) => x.id === id);
+  const r = db().find((x) => x.id === id);
   if (!r) return json(404, { ok: false, error: 'not_found' });
   const { attachments, ...report } = r;
   return json(200, {
@@ -69,23 +74,23 @@ function getReport(id) {
 }
 
 function deleteReport(id) {
-  const before = store.length;
-  store = store.filter((r) => r.id !== id);
-  if (store.length === before) return json(404, { ok: false, error: 'not_found' });
+  const before = db().length;
+  store = db().filter((r) => r.id !== id);
+  if (db().length === before) return json(404, { ok: false, error: 'not_found' });
   return json(200, { ok: true, deleted: 1 });
 }
 
 function setStatus(id, body) {
   const status = body.status ?? '';
   if (!SETTABLE_STATUSES.has(status)) return json(400, { ok: false, error: 'bad_status' });
-  const r = store.find((x) => x.id === id);
+  const r = db().find((x) => x.id === id);
   if (!r) return json(404, { ok: false, error: 'not_found' });
   r.status = status;
   return json(200, { ok: true, status });
 }
 
 function promoteReport(id, body) {
-  const r = store.find((x) => x.id === id);
+  const r = db().find((x) => x.id === id);
   if (!r) return json(404, { ok: false, error: 'not_found' });
   const issueUrl = `https://github.com/demo-org/demo-app/issues/${nextIssueNumber++}`;
   r.status = 'promoted';
@@ -94,7 +99,7 @@ function promoteReport(id, body) {
 }
 
 function getAttachment(id, attId) {
-  const r = store.find((x) => x.id === id);
+  const r = db().find((x) => x.id === id);
   const att = r && r.attachments.find((a) => a.id === attId);
   if (!att) return json(404, { ok: false, error: 'not_found' });
   return new Response(attachmentBlob(att), {
@@ -106,16 +111,16 @@ function getAttachment(id, attId) {
 function prunePreview(params) {
   const { valid, sinceMs } = resolvePruneWindow(params.get('window') ?? '');
   if (!valid) return json(400, { ok: false, error: 'bad_window' });
-  const count = store.filter((r) => sinceMs === null || r.created >= sinceMs).length;
+  const count = db().filter((r) => sinceMs === null || r.created >= sinceMs).length;
   return json(200, { ok: true, count });
 }
 
 function pruneReports(body) {
   const { valid, sinceMs } = resolvePruneWindow(body.window ?? '');
   if (!valid) return json(400, { ok: false, error: 'bad_window' });
-  const before = store.length;
-  store = store.filter((r) => !(sinceMs === null || r.created >= sinceMs));
-  return json(200, { ok: true, deleted: before - store.length });
+  const before = db().length;
+  store = db().filter((r) => !(sinceMs === null || r.created >= sinceMs));
+  return json(200, { ok: true, deleted: before - db().length });
 }
 
 async function handle(path, opts = {}) {

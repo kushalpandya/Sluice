@@ -1,10 +1,26 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>Sluice</title>
+  <script>
+    // Resolve the theme before first paint so there is no flash of the wrong
+    // scheme. hooks/useTheme.js owns this key and re-applies on every change.
+    (function () {
+      try {
+        var mode = localStorage.getItem('sluiceThemeMode') || 'auto';
+        var dark =
+          mode === 'dark' ||
+          (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light';
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>

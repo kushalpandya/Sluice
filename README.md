@@ -66,7 +66,8 @@ push the repo publicly without committing your own values:
 - `worker/wrangler.jsonc` → `vars`: `PRODUCT_NAME`, `GITHUB_OWNER`, `GITHUB_REPO`,
   the D1 `database_id`, and the size/rate caps.
 - `web/src/config.js`: `PRODUCT_NAME` and an optional default Worker URL.
-- `web/src/styles.scss`: the accent colour (`$primary`) - committed, one line.
+- `web/src/styles.css`: the accent colour (`--color-brand`, plus its dark-scheme
+  counterpart) - committed, two lines.
 
 ## Setup
 

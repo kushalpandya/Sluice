@@ -1,0 +1,295 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Theme
+
+   hooks/useTheme.js resolves 'auto' against the OS and always writes a concrete
+   `data-theme="light" | "dark"` onto <html> (index.html does the same before
+   first paint). So dark mode is driven by that attribute only - never by a bare
+   media query - which keeps the manual light/dark override authoritative.
+--------------------------------------------------------------------------- */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Semantic tokens. Values below are the light scheme; the dark scheme
+   re-declares the same names further down. `--color-brand` is the one-line
+   rebrand seed - everything accented derives from it. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  /* Foreground values are chosen to clear WCAG AA (4.5:1) against the surface
+     they sit on, including the *-soft badge fills; --color-control-line clears
+     the 3:1 that a control's own boundary needs. Re-check both if you retune. */
+  --color-brand: #2f68a8;
+  --color-brand-hover: #275a93;
+  --color-on-brand: #ffffff;
+  --color-brand-soft: #e8f1fb;
+
+  --color-canvas: #eef1f5;
+  --color-surface: #ffffff;
+  --color-subtle: #f6f8fa;
+  --color-hover: #eef2f7;
+  --color-line: #dde3ea;
+  --color-line-soft: #e9edf2;
+  --color-control-line: #9aa5b4;
+
+  --color-ink: #16202b;
+  --color-ink-soft: #4a5765;
+  --color-ink-faint: #626e7d;
+
+  --color-ok: #157038;
+  --color-warn: #8f5500;
+  --color-bad: #c0392f;
+  --color-bad-hover: #a72f26;
+  --color-on-bad: #ffffff;
+  --color-ok-soft: #e6f4ec;
+  --color-warn-soft: #fbf0dd;
+  --color-bad-soft: #fbeae8;
+  --color-info: #2f68a8;
+  --color-info-soft: #e8f1fb;
+  --color-neutral-soft: #eceff3;
+}
+
+[data-theme="dark"] {
+  --color-brand: #6aa7e4;
+  --color-brand-hover: #7db4ea;
+  --color-on-brand: #0b1219;
+  --color-brand-soft: #16304a;
+
+  --color-canvas: #0b0f14;
+  --color-surface: #131a22;
+  --color-subtle: #171f28;
+  --color-hover: #1e2833;
+  --color-line: #263140;
+  --color-line-soft: #1d2732;
+  --color-control-line: #5b6a7d;
+
+  --color-ink: #e6ecf3;
+  --color-ink-soft: #a3b1c1;
+  --color-ink-faint: #7d8ca3;
+
+  --color-ok: #4ec97f;
+  --color-warn: #e0a94a;
+  --color-bad: #f0736a;
+  --color-bad-hover: #f4877f;
+  --color-on-bad: #2a0e0c;
+  --color-ok-soft: #14301f;
+  --color-warn-soft: #33260f;
+  --color-bad-soft: #351a19;
+  --color-info: #6aa7e4;
+  --color-info-soft: #16304a;
+  --color-neutral-soft: #202a35;
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Containers that only exist to receive focus programmatically - the reader
+   pane, a dialog box with no field to land on - are not keyboard destinations
+   the user navigated to, so ringing the whole panel is just noise. Screen
+   readers still announce them on arrival. */
+[tabindex="-1"]:focus,
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
+/* Chrome paints autofilled fields with its own (light) background, which breaks
+   the dark scheme on the sign-in form. Repaint them with our own tokens. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ink);
+  box-shadow: 0 0 0 1000px var(--color-surface) inset;
+  caret-color: var(--color-ink);
+  transition: background-color 9999s ease-out;
+}
+
+/* Slim, theme-aware scrollbars inside the panes. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-line);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   Component shorthands - only for patterns repeated across many components.
+--------------------------------------------------------------------------- */
+/* `btn` carries the shape; the variants below repaint it. The neutral hover
+   excludes every variant by name - @utility rules land in the stylesheet in an
+   arbitrary order, so a same-specificity `.btn:hover` could otherwise win over
+   `.btn-danger` and wash a button out mid-hover. */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg border
+    border-control-line bg-surface px-3 py-1.5 text-sm font-medium text-ink
+    transition-colors select-none;
+  &:hover:not(:disabled, .btn-primary, .btn-danger, .btn-ghost) {
+    background-color: var(--color-hover);
+  }
+  &:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+}
+
+@utility btn-primary {
+  @apply border-transparent bg-brand text-on-brand;
+  &:hover:not(:disabled) {
+    background-color: var(--color-brand-hover);
+  }
+}
+
+@utility btn-danger {
+  @apply border-transparent bg-bad text-on-bad;
+  &:hover:not(:disabled) {
+    background-color: var(--color-bad-hover);
+  }
+}
+
+@utility btn-ghost {
+  @apply border-transparent bg-transparent text-ink-soft;
+  &:hover:not(:disabled) {
+    background-color: var(--color-hover);
+    color: var(--color-ink);
+  }
+}
+
+@utility btn-icon {
+  @apply h-9 w-9 shrink-0 p-0;
+}
+
+@utility field-input {
+  @apply w-full rounded-lg border border-control-line bg-surface px-3 py-2 text-sm
+    text-ink placeholder:text-ink-faint;
+  &:focus {
+    outline: 2px solid var(--color-brand);
+    outline-offset: -1px;
+    border-color: transparent;
+  }
+}
+
+@utility field-label {
+  @apply mb-1.5 block text-xs font-semibold tracking-wide text-ink-soft uppercase;
+}
+
+/* Panel scroll containers. */
+@utility scroll-pane {
+  @apply overflow-y-auto overscroll-contain;
+}
+
+/* Text that must never widen its flex parent. */
+@utility truncate-flex {
+  @apply min-w-0 truncate;
+}
+
+/* ---------------------------------------------------------------------------
+   Animations
+--------------------------------------------------------------------------- */
+@keyframes sluice-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sluice-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Undo window: the bar drains over the toast's lifetime. Its duration is set
+   inline, per toast, from the same value that schedules the deferred action. */
+@keyframes sluice-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@utility toast-progress {
+  transform-origin: left;
+  animation-name: sluice-toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+/* Hold the bar wherever it is while the toast is hovered or focused, matching
+   the timer useToast pauses at the same moment. */
+.toast-shell:hover .toast-progress,
+.toast-shell:focus-within .toast-progress {
+  animation-play-state: paused;
+}
+
+@keyframes sluice-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@utility animate-fade-in {
+  animation: sluice-fade-in 0.15s ease-out;
+}
+@utility animate-pop-in {
+  animation: sluice-pop-in 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+@utility animate-slide-in {
+  animation: sluice-slide-in 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    /* Without this, `animate-spin` stays infinite and keeps scheduling frames. */
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
