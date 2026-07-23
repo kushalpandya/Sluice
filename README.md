@@ -7,8 +7,40 @@
 > _A sluice is an artificial channel or trough used to control, direct, or carry off water._
 > _It is typically fitted with a gate to regulate the flow._
 
-A Cloudfare Workers-backed system to problem reports from your app submitted by users,
-allowing you, the maintainer of the app to triage the reports into GitHub issues.
+A Cloudflare Workers-backed system that collects problem reports submitted by users of
+your app and lets you, the app's maintainer, triage them into GitHub issues.
+
+**[Live demo →](https://kushalpandya.github.io/Sluice)**
+
+## What does it solve?
+
+If you're running an app or a service with hundreds or thousands of users, some of them
+will run into bugs, or have feature requests they'd like to share with you, along with
+supporting details (e.g. log files, screenshots). Larger SaaS providers have plenty of
+options for handling this, but for indie app developers there are almost none. Most indie
+projects are run by one or two people at most, so the human capacity (or financial
+resources) to triage incoming feedback is scarce or non-existent.
+
+Sluice solves this exact problem by taking the friction out of reporting a bug or
+suggesting a feature to you, the developer. It was created for
+[Petrichor](https://petrichor.page/), a popular indie Mac app.
+
+### User journey
+
+Here's what a typical user journey looks like once you've integrated Sluice into your app:
+
+1. A user is using your app and notices something wrong or missing.
+2. They report it through your app's own UI, e.g. a form with a few fields for report details.
+   Sluice provides a REST endpoint via a Cloudflare Worker; you control how the user submits
+   the report to that endpoint.
+3. On submission, your app makes a REST API call to the Worker's URL.
+4. The Worker receives the report details in the request payload and stores them - report
+   metadata in Cloudflare's D1 database, attachments (log files, screenshots, recordings,
+   etc.) in R2 object storage.
+5. You review the reports in the Sluice web frontend (a static site that accesses your data
+   via the admin key) and triage them - promoting to a GitHub issue, discarding as spam, etc.
+
+## Approach
 
 Reports are stored, not auto-filed. When your app POSTs a report, the Worker
 saves it to D1 (and any attachments to R2) and stops. You review reports in the
@@ -25,10 +57,9 @@ flowchart LR
 ```
 
 All the data stays in your own Cloudflare account. Any client that can send a
-multipart POST can use it (native app, Electron, web, a shell script). Runs on
-Cloudflare's free plan.
-
-### [Demo Page](https://kushalpandya.github.io/Sluice)
+multipart POST can use it (native app, Electron, web, a shell script). The
+default caps are tuned so a free Cloudflare account can absorb hundreds of user
+reports a month without ever touching a paid plan.
 
 ## Layout
 
@@ -73,8 +104,8 @@ push the repo publicly without committing your own values:
 
 You need Node, a Cloudflare account, and a GitHub account.
 
-First copy the config templates. These three files are gitignored so your own
-values never get committed - the repo stays a clean template:
+First copy the config templates (the gitignored files from
+[Make it yours](#make-it-yours)):
 
 ```bash
 cp worker/wrangler.jsonc.example worker/wrangler.jsonc
@@ -118,7 +149,7 @@ promotion.
 
 ```bash
 cd worker
-cp .env.example .env    # fill in the keys
+# fill in the keys in worker/.env (copied from .env.example during setup)
 npx wrangler d1 execute sluice-reports --local --file schema.sql
 cd ..
 
@@ -207,7 +238,7 @@ you'd ship an app update carrying the new value.
 - To file issues somewhere other than GitHub, edit `worker/src/github.ts` and the
   `GITHUB_*` config. Nothing else changes.
 
-# Author
+## Author
 
 [Kushal Pandya](https://doublslash.com/about)
 
