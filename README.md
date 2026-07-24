@@ -56,194 +56,211 @@ flowchart LR
     Worker -.->|"on promote"| GH["GitHub issue"]
 ```
 
-All the data stays in your own Cloudflare account. Any client that can send a
-multipart POST can use it (native app, Electron, web, a shell script). The
-default caps are tuned so a free Cloudflare account can absorb hundreds of user
-reports a month without ever touching a paid plan.
+Your reports stay in your Cloudflare account: D1 stores the report details and
+R2 stores uploaded files. The web UI reads both through the Worker.
 
-## Layout
+Sluice works with native apps, Electron apps, server-side code, and command-line
+tools. A browser app on a different domain cannot submit directly to `/report`
+without adding CORS support to that route or sending the report through its own
+server.
 
-The backend Worker (`worker/`) and the Preact web UI (`web/`) share one root
-`package.json`.
+## Set up Sluice
 
-- `worker/src/` - the Worker as small ES modules (`index.ts` is the router;
-  `ingest.ts`, `admin.ts`, `github.ts`, plus helpers). Wrangler bundles them.
-- `worker/schema.sql` - the D1 schema (`reports` + `attachments`).
-- `worker/wrangler.jsonc.example` - bindings and config template (copy to
-  `worker/wrangler.jsonc`, which is gitignored).
-- `worker/.env.example` - local secrets template (copy to `worker/.env`).
-- `worker/seed.sh`, `worker/testreport.sh` - sample data and a smoke test.
-- `web/` - the UI. `web/src/config.example.js` → `web/src/config.js` (gitignored)
-  holds the product name and default URL.
+You need Node.js, npm, and a Cloudflare account. GitHub is only required if you
+want to turn reports into issues.
 
-Run `wrangler` from inside `worker/`. The npm scripts do that for you.
+1. Copy the example files. The copies are ignored by Git.
 
-## Scripts
+   ```bash
+   cp worker/wrangler.jsonc.example worker/wrangler.jsonc
+   cp worker/.env.example worker/.env
+   cp web/src/config.example.js web/src/config.js
+   ```
 
-| Command              | What it does                             |
-| -------------------- | ---------------------------------------- |
-| `npm run dev`        | UI dev server at `http://127.0.0.1:8123` |
-| `npm run dev:api`    | Worker locally (`wrangler dev`)          |
-| `npm run deploy:api` | Deploy the Worker                        |
-| `npm run deploy:web` | Build and deploy the UI to Pages         |
-| `npm run typecheck`  | Typecheck the Worker                     |
+2. Install the dependencies and sign in to Cloudflare.
 
-## Make it yours
+   ```bash
+   npm install
+   cd worker
+   npx wrangler login
+   ```
 
-Branding and per-instance config live in three files. The first two are
-gitignored (you copy them from `.example` templates during setup), so you can
-push the repo publicly without committing your own values:
+3. Create an R2 bucket for attachments and a D1 database for reports.
 
-- `worker/wrangler.jsonc` → `vars`: `PRODUCT_NAME`, `GITHUB_OWNER`, `GITHUB_REPO`,
-  the D1 `database_id`, and the size/rate caps.
-- `web/src/config.js`: `PRODUCT_NAME` and an optional default Worker URL.
-- `web/src/styles.css`: the accent colour (`--color-brand`, plus its dark-scheme
-  counterpart) - committed, two lines.
+   ```bash
+   npx wrangler r2 bucket create sluice-reports
+   npx wrangler d1 create sluice-reports
+   ```
 
-## Setup
+4. In `worker/wrangler.jsonc`, paste the returned `database_id`. Set
+   `PRODUCT_NAME`, `GITHUB_OWNER`, `GITHUB_REPO`, and `ADMIN_ALLOWED_ORIGIN`.
+   Include `http://127.0.0.1:8123` in the allowed origins for local development.
+   You can leave the report and rate limits at their defaults.
 
-You need Node, a Cloudflare account, and a GitHub account.
+5. Create the database tables.
 
-First copy the config templates (the gitignored files from
-[Make it yours](#make-it-yours)):
+   ```bash
+   npx wrangler d1 execute sluice-reports --remote --file schema.sql
+   ```
 
-```bash
-cp worker/wrangler.jsonc.example worker/wrangler.jsonc
-cp worker/.env.example worker/.env
-cp web/src/config.example.js web/src/config.js
-```
+6. Add the keys used by the deployed Worker.
 
-Then install and log in:
+   ```bash
+   npx wrangler secret put APP_KEY
+   npx wrangler secret put ADMIN_KEY
+   # Optional: npx wrangler secret put GITHUB_TOKEN
+   ```
 
-```bash
-npm install
-cd worker
-npx wrangler login
-```
+   Use different strong random values for `APP_KEY` and `ADMIN_KEY`. The optional
+   GitHub token must be a fine-grained token with issue read/write access to the
+   configured repository.
 
-Create the bucket and database:
-
-```bash
-npx wrangler r2 bucket create sluice-reports
-npx wrangler r2 bucket lifecycle add sluice-reports \
-  --prefix reports/ --expire-days 30 --name expire-blobs
-
-npx wrangler d1 create sluice-reports
-# paste the returned database_id into wrangler.jsonc, then:
-npx wrangler d1 execute sluice-reports --remote --file schema.sql
-```
-
-Set the secrets:
-
-```bash
-npx wrangler secret put APP_KEY       # your app sends this in X-Report-Key
-npx wrangler secret put ADMIN_KEY     # gates the /admin API (keep it safe)
-npx wrangler secret put GITHUB_TOKEN  # fine-grained PAT, Issues: read/write on your repo
-```
-
-For promotion, `GITHUB_OWNER` and `GITHUB_REPO` in `wrangler.jsonc` point at the
-repo issues are filed on. Leave `GITHUB_TOKEN` empty to test everything but
-promotion.
+7. Set `PRODUCT_NAME` in `web/src/config.js`. `DEFAULT_BASE` controls the Worker
+   URL placeholder, and `--color-brand` in `web/src/styles.css` controls the
+   accent colour.
 
 ## Run it locally
 
+Add your local keys to `worker/.env`, then create the local database tables:
+
 ```bash
 cd worker
-# fill in the keys in worker/.env (copied from .env.example during setup)
 npx wrangler d1 execute sluice-reports --local --file schema.sql
 cd ..
-
-npm run dev:api         # Worker at http://127.0.0.1:8787
-npm run dev             # UI at http://127.0.0.1:8123
 ```
 
-In the UI, set the Worker base URL to the local or deployed Worker and paste the
-admin key. `worker/testreport.sh` runs a full ingest/list/detail/attachment/
-delete/prune cycle; `worker/seed.sh` adds a few sample reports.
+Run these commands in separate terminals from the repository root:
+
+```bash
+npm run dev:api
+npm run dev
+```
+
+Open `http://127.0.0.1:8123`, then connect to `http://127.0.0.1:8787` with the
+`ADMIN_KEY` from `worker/.env`.
+
+## Connect your app
+
+Send reports to `POST /report` as `multipart/form-data`, with the app key in the
+`X-Report-Key` header.
+
+| Field | Required | What to send |
+| --- | --- | --- |
+| `reportId` | no | A UUID. Reusing it prevents duplicate reports; the Worker creates one if omitted. |
+| `installationId` | yes | An anonymous ID for this installation, used for rate limits |
+| `category` | yes | `bug`, `crash`, `feature`, or `other` |
+| `summary` | yes | A short title, up to 200 characters |
+| `description` | yes | The full report, up to 5,000 characters |
+| `email` | yes | The reporter's email address, up to 254 characters |
+| `appVersion` | yes | Your app's version, up to 100 characters |
+| `osVersion` | yes | The operating system or platform, up to 100 characters |
+| `metadata` | no | Extra information stored as text; JSON is accepted but not validated |
+| `attachment` | no | A file such as a log, screenshot, or recording. Repeat this field to send more than one file. |
+
+By default, a report can have up to 10 attachments, each no larger than 10 MiB.
+Requests that declare a total size above 25 MiB are rejected. These values can
+be changed in `worker/wrangler.jsonc`.
+
+```bash
+curl -X POST https://api.example.com/report \
+  -H "X-Report-Key: $APP_KEY" \
+  -F "reportId=$(uuidgen)" \
+  -F "installationId=anon-123" \
+  -F "category=bug" \
+  -F "summary=Crash on export" \
+  -F "description=Steps to reproduce..." \
+  -F "email=user@example.com" \
+  -F "appVersion=2.1.0" \
+  -F "osVersion=macOS 14.5" \
+  -F "attachment=@app.log.gz;type=application/gzip" \
+  -F "attachment=@shot.png;type=image/png"
+```
+
+A successful request returns the report ID and whether it was already stored.
+Rate limits run before duplicate detection, so a rapid retry may still be
+rate-limited.
+
+## Review reports
+
+You can search reports, view attachments, mark reports as archived or spam,
+delete them, or promote them to GitHub issues. Promotion is manual and lets you
+edit the issue first. Its suggested labels must already exist in your repository.
+Reporter email, installation ID, metadata, and attachments are left out of the
+default issue. Each section shows at most 200 reports; there is no pagination.
 
 ## Deploy
+
+From the repository root:
 
 ```bash
 npm run deploy:api
 npm run deploy:web
 ```
 
-`deploy:web` passes `--branch production` so the upload always lands on the Pages
-project's production branch (and thus your custom domain), instead of inferring
-the branch from git - otherwise deploying from a differently-named git branch
-creates a _preview_ deployment and the domain doesn't update. If your project's
-production branch isn't `production`, change the flag in `package.json`.
+The web command expects a Cloudflare Pages project named `sluice-ui` with a
+production branch named `production`. Change the script in `package.json` if
+yours differs.
 
-To use your own domains, put the zone on Cloudflare, add a custom domain to the
-Worker (e.g. `api.example.com`) and to the Pages project (e.g.
-`reports.example.com`), and turn on Cloudflare Access in front of the UI so it
-needs a login. Leave `/report` public for your app.
+For custom domains, add one to the Worker and one to the Pages site. Update
+`ADMIN_ALLOWED_ORIGIN` when the UI domain changes. Protect the UI with
+Cloudflare Access, but leave `/report` reachable by your app.
 
-## The report format
+## Keep it secure
 
-`POST /report`, `multipart/form-data`, header `X-Report-Key: <APP_KEY>`.
+`APP_KEY` discourages unwanted submissions, but a key embedded in an app can be
+recovered. Rate limits and daily caps limit abuse. `ADMIN_KEY` can read and
+delete reports and create GitHub issues, so treat it like a password.
 
-| Field            | Type              | Required | Description                                                                                                                                                                                                                                  |
-| ---------------- | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reportId`       | string (UUID)     | yes      | Client-generated UUID. Also the idempotency key - re-sending the same `reportId` is a no-op and returns `duplicate: true`.                                                                                                                   |
-| `installationId` | string            | yes      | Anonymous per-install identifier. Subject of the per-installation rate limit and daily cap.                                                                                                                                                  |
-| `category`       | string (enum)     | yes      | One of `bug`, `crash`, `feature`, `other`.                                                                                                                                                                                                   |
-| `summary`        | string            | yes      | Short title. Max 200 chars.                                                                                                                                                                                                                  |
-| `description`    | string            | yes      | The report body. Max 5000 chars.                                                                                                                                                                                                             |
-| `email`          | string            | yes      | Reporter's email. Max 254 chars.                                                                                                                                                                                                             |
-| `appVersion`     | string            | yes      | Version of the reporting app. Max 100 chars.                                                                                                                                                                                                 |
-| `osVersion`      | string            | yes      | OS / platform the app runs on. Max 100 chars.                                                                                                                                                                                                |
-| `metadata`       | string (JSON)     | no       | Opaque JSON blob, stored as-is and never parsed. A catch-all for extra or future fields (device info, diagnostics, flags) - add keys without a schema change.                                                                                |
-| `attachment`     | file (repeatable) | no       | Zero or more file parts (logs, screenshots, recordings); send one part per file, all named `attachment`. Defaults: up to 10 files, ≤ 10 MB each, ≤ 25 MB total - tunable via `MAX_ATTACHMENTS` / `MAX_ATTACHMENT_BYTES` / `MAX_TOTAL_BYTES`. |
+The UI stores the admin key in browser `localStorage`. Use a trusted UI domain,
+avoid third-party scripts there, restrict `ADMIN_ALLOWED_ORIGIN`, and enable
+Cloudflare Access.
+
+To replace the admin key, run the following commands from `worker/`:
 
 ```bash
-curl -X POST https://api.example.com/report -H "X-Report-Key: $APP_KEY" \
-  -F "reportId=$(uuidgen)" -F "installationId=anon-123" -F "category=bug" \
-  -F "summary=Crash on export" -F "description=Steps to reproduce..." \
-  -F "email=user@example.com" -F "appVersion=2.1.0" -F "osVersion=macOS 14.5" \
-  -F "attachment=@app.log.gz;type=application/gzip" \
-  -F "attachment=@shot.png;type=image/png"
+openssl rand -base64 32
+npx wrangler secret put ADMIN_KEY
 ```
 
-The admin endpoints under `/admin/*` (list, detail, attachment download, promote,
-status, delete, prune) all take `Authorization: Bearer <ADMIN_KEY>`.
+The Worker uses the new key immediately. Sign in again and update `worker/.env`.
+You can rotate `APP_KEY` the same way, but must also update your app.
 
-## Rotating the admin key
+## Delete reports and attachments
 
-`ADMIN_KEY` is the one credential that matters - it's both your login to the web
-UI and the bearer token for the whole `/admin` API. Rotate it if it ever leaks
-(or just periodically). From `worker/`:
+Deleting a report also deletes its attachments. Bulk delete removes reports
+created within the selected period, regardless of status, and cannot be undone.
 
-```bash
-openssl rand -base64 32          # generate a strong new value
-npx wrangler secret put ADMIN_KEY # paste it when prompted
-```
+Do not expire R2 files by themselves: their D1 entries would remain and the UI
+would show broken attachments.
 
-`wrangler secret put` updates the live Worker immediately - no redeploy needed.
-The old key stops working at once, so the UI's next request 401s and signs you
-out; sign back in with the new key. Do that on every browser/origin you use it
-from (e.g. `reports.petrichor.page`, and `127.0.0.1:8123` if you develop
-locally). If you use `testreport.sh` / `seed.sh`, update `ADMIN_KEY` in
-`worker/.env` too.
+**Only run the helper scripts against a disposable instance.** `worker/seed.sh`
+deletes every report before adding samples. `worker/testreport.sh` also deletes
+every report during cleanup; with `--promote`, it creates a real GitHub issue.
 
-The same steps rotate `APP_KEY`, except that key is also embedded in your app, so
-you'd ship an app update carrying the new value.
+## Useful commands
 
-## Notes
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Run the UI at `http://127.0.0.1:8123` |
+| `npm run dev:api` | Run the Worker at `http://127.0.0.1:8787` |
+| `npm run demo` | Run the UI with temporary sample data and no Worker |
+| `npm run build` | Build the UI into `dist/` |
+| `npm run deploy:api` | Deploy the Worker |
+| `npm run deploy:web` | Build and deploy the UI to Cloudflare Pages |
+| `npm run tail` | Stream logs from the deployed Worker |
+| `npm run typecheck` | Check the Worker TypeScript |
 
-- The app key isn't a real secret if your app is open source; it just raises the
-  bar. The admin key is the one that matters. Rate limits, size caps, and daily
-  caps keep abuse cheap to absorb, and there's no billing on the free plan.
-- Promoted issues leave out the reporter's email and the raw metadata blob.
-- To file issues somewhere other than GitHub, edit `worker/src/github.ts` and the
-  `GITHUB_*` config. Nothing else changes.
+## Project structure
 
-## Author
-
-[Kushal Pandya](https://doublslash.com/about)
+The Worker API is in `worker/`, the Preact UI is in `web/`, and built UI files
+go to `dist/`. Both use the root `package.json`.
 
 ## License
 
 MIT - see [LICENSE](LICENSE).
+
+## Author
+
+[Kushal Pandya](https://doublslash.com/about)
 
 Co-created with [Claude](https://claude.ai/)
